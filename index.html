@@ -307,6 +307,76 @@
     border-top: 1px solid var(--border);
     letter-spacing: 1px;
   }
+
+  /* ── Responsive — Tablet (≤900px) ───────────────────── */
+  @media (max-width: 900px) {
+    .header { padding: 14px 20px; }
+    .header-title h1 { font-size: 1.3rem; }
+    .stats-strip { padding: 12px 16px; gap: 10px; }
+    .stat-card { min-width: 140px; }
+    .main { padding: 14px 16px; }
+    /* Hide avg/best columns to reduce table width */
+    .lb-table th:nth-child(8),
+    .lb-table td:nth-child(8),
+    .lb-table th:nth-child(9),
+    .lb-table td:nth-child(9) { display: none; }
+  }
+
+  /* ── Responsive — Mobile (≤600px) ───────────────────── */
+  @media (max-width: 600px) {
+    .header { padding: 10px 14px; gap: 10px; }
+    .header-flag { font-size: 1.5rem; }
+    .header-title h1 { font-size: 1rem; letter-spacing: 1px; }
+    .header-subtitle { font-size: 0.62rem; letter-spacing: 0.5px; }
+    .header-badge { font-size: 0.62rem; padding: 3px 7px; }
+
+    .stats-strip { padding: 10px 10px; gap: 8px; }
+    .stat-card {
+      min-width: calc(50% - 4px);
+      flex: 1 1 calc(50% - 4px);
+      padding: 8px 12px;
+    }
+    .stat-card .value { font-size: 0.95rem; }
+
+    .main { padding: 10px 10px; gap: 12px; }
+    .chart-panel { padding: 12px 10px 6px; }
+
+    .chart-tabs { flex-wrap: wrap; gap: 6px; }
+    .tab-btn {
+      flex: 1 1 auto;
+      text-align: center;
+      padding: 7px 6px;
+      font-size: 0.62rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* Leaderboard: hide PREV TOTAL, AVG/RACE, BEST RACE columns */
+    .lb-table th:nth-child(3),
+    .lb-table td:nth-child(3),
+    .lb-table th:nth-child(8),
+    .lb-table td:nth-child(8),
+    .lb-table th:nth-child(9),
+    .lb-table td:nth-child(9) { display: none; }
+
+    .lb-table { font-size: 0.74rem; }
+    .lb-table th,
+    .lb-table td { padding: 6px 6px; }
+    .pos-badge { width: 22px; height: 22px; font-size: 0.75rem; }
+
+    .winner-row-header { min-width: 120px; }
+    .wr-name { font-size: 0.75rem; }
+    .win-pill { font-size: 0.6rem; padding: 2px 5px; }
+  }
+
+  /* ── Responsive — Very small (≤380px) ───────────────── */
+  @media (max-width: 380px) {
+    .header-flag { display: none; }
+    .header-title h1 { font-size: 0.95rem; }
+    .stat-card { flex: 1 1 100%; }
+    /* Also hide GAP column to give more room */
+    .lb-table th:nth-child(6),
+    .lb-table td:nth-child(6) { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -641,6 +711,13 @@ function showChart(id) {
   }
 }
 
+// ── Responsive chart height ─────────────────────────────
+function chartHeight() {
+  if (window.innerWidth <= 600) return 420;
+  if (window.innerWidth <= 900) return 520;
+  return 680;
+}
+
 // ── Shared layout defaults ───────────────────────────────
 const BASE_LAYOUT = {
   paper_bgcolor: '#111827',
@@ -686,7 +763,7 @@ const BASE_LAYOUT = {
 
   const layout = Object.assign({}, BASE_LAYOUT, {
     yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Cumulative Points', font: { size: 11 } } }),
-    height: 680
+    height: chartHeight()
   });
   Plotly.newPlot('chart-cum', traces, layout, { responsive: true, displaylogo: false });
 })();
@@ -708,7 +785,7 @@ function initRankChart() {
       autorange: 'reversed',
       tickmode: 'linear', tick0: 1, dtick: 1
     }),
-    height: 680
+    height: chartHeight()
   });
   Plotly.newPlot('chart-rank', traces, layout, { responsive: true, displaylogo: false });
 }
@@ -726,7 +803,7 @@ function initBarChart() {
   const layout = Object.assign({}, BASE_LAYOUT, {
     barmode: 'group',
     yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Points Scored', font: { size: 11 } } }),
-    height: 680
+    height: chartHeight()
   });
   Plotly.newPlot('chart-bar', traces, layout, { responsive: true, displaylogo: false });
 }
