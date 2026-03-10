@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Global F1 Battle 2026</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  :root {
+    --bg:        #0a0e1a;
+    --panel:     #111827;
+    --panel2:    #161f2e;
+    --border:    #1e2d45;
+    --accent:    #e8002d;
+    --accent2:   #00d2be;
+    --text:      #e8eaf0;
+    --text-dim:  #7a8ba0;
+    --green:     #00e676;
+    --red:       #ff1744;
+    --gold:      #ffd700;
+    --silver:    #c0c0c0;
+    --bronze:    #cd7f32;
+    --mono:      'Courier New', Courier, monospace;
+    --sans:      'Inter', 'Segoe UI', Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, #0d1220 0%, #1a0a10 50%, #0d1220 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .header-flag {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+  }
+  .header-title {
+    flex: 1;
+  }
+  .header-title h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .header-title h1 span { color: var(--accent); }
+  .header-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  /* ── Stat Cards ──────────────────────────────────────── */
+  .stats-strip {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 16px;
+    min-width: 160px;
+    flex: 1;
+  }
+  .stat-card .label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .stat-card .value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stat-card .sub {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .stat-card.accent  { border-left: 3px solid var(--accent); }
+  .stat-card.accent2 { border-left: 3px solid var(--accent2); }
+  .stat-card.gold    { border-left: 3px solid var(--gold); }
+  .stat-card.green   { border-left: 3px solid var(--green); }
+
+  /* ── Main layout ─────────────────────────────────────── */
+  .main {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Section titles ──────────────────────────────────── */
+  .section-title {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-left: 3px solid var(--accent);
+    padding-left: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Chart containers ────────────────────────────────── */
+  .chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 16px 8px;
+  }
+  .chart-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .tab-btn {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 5px 14px;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
+  .chart-wrap { width: 100%; }
+  .chart-hidden { display: none; }
+
+  /* ── Leaderboard ─────────────────────────────────────── */
+  .lb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+  }
+  .lb-table th {
+    background: #0d1220;
+    color: var(--text-dim);
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .lb-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .lb-table tr:last-child td { border-bottom: none; }
+  .lb-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+  .pos-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 3px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    background: var(--panel2);
+    color: var(--text);
+  }
+  .pos-badge.p1 { background: var(--gold); color: #000; }
+  .pos-badge.p2 { background: var(--silver); color: #000; }
+  .pos-badge.p3 { background: var(--bronze); color: #000; }
+
+  .team-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .player-name {
+    display: flex;
+    align-items: center;
+  }
+
+  .change-up   { color: var(--green); font-weight: 700; }
+  .change-down { color: var(--red);   font-weight: 700; }
+  .change-same { color: var(--text-dim); }
+
+  .gap-col { color: var(--text-dim); }
+  .gap-col.leader { color: var(--accent2); }
+
+  .pts-col { color: var(--text); font-weight: 600; }
+  .race-pts-pos { color: var(--green); }
+  .race-pts-neg { color: var(--red); }
+
+  /* avg bar */
+  .avg-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .avg-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--accent2);
+    opacity: 0.7;
+  }
+  .avg-val { font-size: 0.78rem; color: var(--text-dim); min-width: 36px; }
+
+  /* ── Race winners rows ───────────────────────────────── */
+  .winner-row {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .winner-row-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+  .wr-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .wr-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .winner-races {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+  .win-pill {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+    cursor: default;
+  }
+  .win-pill:hover { border-color: var(--accent2); color: var(--text); }
+
+  /* ── Footer ──────────────────────────────────────────── */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 0.66rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-flag">🏁</div>
+  <div class="header-title">
+    <h1>Global <span>F1</span> Battle <span>2026</span></h1>
+    <div class="header-subtitle">Fantasy League · Season Standings · After 01 - Australia</div>
+  </div>
+  <div class="header-badge">Race 1</div>
+</div>
+
+<!-- ══ STAT CARDS ══════════════════════════════════════════════════════════ -->
+<div class="stats-strip">
+    <div class="stat-card accent">
+      <div class="label">🏆 Leader</div>
+      <div class="value">Armandas P</div>
+      <div class="sub">241 pts</div>
+    </div>
+    <div class="stat-card green">
+      <div class="label">📈 Biggest Mover</div>
+      <div class="value">Armandas P</div>
+      <div class="sub">No movement · +241 pts</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="label">⚡ Best This Race</div>
+      <div class="value">Armandas P</div>
+      <div class="sub">241 pts · 01 - Australia</div>
+    </div>
+    <div class="stat-card accent2">
+      <div class="label">🎯 Most Consistent</div>
+      <div class="value">Armandas P</div>
+      <div class="sub">Avg 241 pts/race · 1 races</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🏎 Races</div>
+      <div class="value">1</div>
+      <div class="sub">Completed this season</div>
+    </div></div>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- ── Cumulative / Rank charts ──────────────────────── -->
+  <div class="chart-panel">
+    <div class="section-title">Championship Points Chart</div>
+    <div class="chart-tabs">
+      <button class="tab-btn active" onclick="showChart('cum')">Cumulative Points</button>
+      <button class="tab-btn" onclick="showChart('rank')">Position Battle</button>
+      <button class="tab-btn" onclick="showChart('bar')">Points Per Race</button>
+    </div>
+    <div id="chart-cum"  class="chart-wrap"></div>
+    <div id="chart-rank" class="chart-wrap chart-hidden"></div>
+    <div id="chart-bar"  class="chart-wrap chart-hidden"></div>
+  </div>
+
+  <!-- ── Leaderboard ───────────────────────────────────── -->
+  <div class="chart-panel">
+    <div class="section-title">Timing Tower — 01 - Australia</div>
+    <div style="overflow-x:auto;">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>POS</th>
+            <th>PLAYER</th>
+            <th style="text-align:right">PREV TOTAL</th>
+            <th style="text-align:right">RACE PTS</th>
+            <th style="text-align:right">NEW TOTAL</th>
+            <th style="text-align:right">GAP</th>
+            <th style="text-align:center">CHG</th>
+            <th>AVG / RACE</th>
+            <th>BEST RACE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pos-badge p1">1</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#E8002D"></span>Armandas P (Kimichi v2)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+241</td>
+            <td style="text-align:right" class="pts-col"><b>241</b></td>
+            <td style="text-align:right"><span class="gap-col leader">LEADER</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:80px"></div>
+              <span class="avg-val">241</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">241 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge p2">2</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#00D2BE"></span>William S (V8 Leprechaun)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+239</td>
+            <td style="text-align:right" class="pts-col"><b>239</b></td>
+            <td style="text-align:right"><span class="gap-col">-2</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:79px"></div>
+              <span class="avg-val">239</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">239 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge p3">3</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#FF8000"></span>Saulius D (SolClover HKF1)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+237</td>
+            <td style="text-align:right" class="pts-col"><b>237</b></td>
+            <td style="text-align:right"><span class="gap-col">-4</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:78px"></div>
+              <span class="avg-val">237</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">237 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">4</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#0600EF"></span>Alex S (HUL-9000)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+234</td>
+            <td style="text-align:right" class="pts-col"><b>234</b></td>
+            <td style="text-align:right"><span class="gap-col">-7</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:77px"></div>
+              <span class="avg-val">234</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">234 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">5</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#DC0000"></span>Paulius R (LitWin Racing Team)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+228</td>
+            <td style="text-align:right" class="pts-col"><b>228</b></td>
+            <td style="text-align:right"><span class="gap-col">-13</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:75px"></div>
+              <span class="avg-val">228</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">228 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">6</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#1E41FF"></span>Karolis J (Turbo team with no Norris)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+222</td>
+            <td style="text-align:right" class="pts-col"><b>222</b></td>
+            <td style="text-align:right"><span class="gap-col">-19</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:73px"></div>
+              <span class="avg-val">222</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">222 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">7</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#B6BABD"></span>David M (Meteoric Maxwell)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+206</td>
+            <td style="text-align:right" class="pts-col"><b>206</b></td>
+            <td style="text-align:right"><span class="gap-col">-35</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:68px"></div>
+              <span class="avg-val">206</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">206 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">8</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#52E252"></span>Vaidas K (Michael!)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+201</td>
+            <td style="text-align:right" class="pts-col"><b>201</b></td>
+            <td style="text-align:right"><span class="gap-col">-40</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:66px"></div>
+              <span class="avg-val">201</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">201 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">9</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#FF1E00"></span>Ignas J (GAIA44)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+188</td>
+            <td style="text-align:right" class="pts-col"><b>188</b></td>
+            <td style="text-align:right"><span class="gap-col">-53</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:62px"></div>
+              <span class="avg-val">188</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">188 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">10</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#C92D4B"></span>Andrius A (AdoF1Ado)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+175</td>
+            <td style="text-align:right" class="pts-col"><b>175</b></td>
+            <td style="text-align:right"><span class="gap-col">-66</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:58px"></div>
+              <span class="avg-val">175</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">175 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">11</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#006F62"></span>Virginija P (La La Landooooo)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+171</td>
+            <td style="text-align:right" class="pts-col"><b>171</b></td>
+            <td style="text-align:right"><span class="gap-col">-70</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:56px"></div>
+              <span class="avg-val">171</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">171 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">12</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#FFF500"></span>Laura M (Inchidental Ferrari Tears)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+167</td>
+            <td style="text-align:right" class="pts-col"><b>167</b></td>
+            <td style="text-align:right"><span class="gap-col">-74</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:55px"></div>
+              <span class="avg-val">167</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">167 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">13</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#3671C6"></span>- (Woking 9 to 5...)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+160</td>
+            <td style="text-align:right" class="pts-col"><b>160</b></td>
+            <td style="text-align:right"><span class="gap-col">-81</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:53px"></div>
+              <span class="avg-val">160</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">160 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">14</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#FF87BC"></span>William H (Hamiltoni Scuderia)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+155</td>
+            <td style="text-align:right" class="pts-col"><b>155</b></td>
+            <td style="text-align:right"><span class="gap-col">-86</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:51px"></div>
+              <span class="avg-val">155</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">155 pts · 01 - Australia</td>
+          </tr>
+          <tr>
+            <td><span class="pos-badge ">15</span></td>
+            <td><div class="player-name"><span class="team-dot" style="background:#A6C84F"></span>Mindaugas V (MV911 Racing Team)</div></td>
+            <td style="text-align:right" class="pts-col">0</td>
+            <td style="text-align:right" class="race-pts-pos">+152</td>
+            <td style="text-align:right" class="pts-col"><b>152</b></td>
+            <td style="text-align:right"><span class="gap-col">-89</span></td>
+            <td style="text-align:center"><span class="change-same">—</span></td>
+            <td><div class="avg-bar-wrap">
+              <div class="avg-bar" style="width:50px"></div>
+              <span class="avg-val">152</span>
+            </div></td>
+            <td style="font-size:0.72rem; color:#7a8ba0">152 pts · 01 - Australia</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Winners grid ─────────────────────────────────── -->
+  <div class="chart-panel">
+    <div class="section-title">Individual Race Winners</div>
+    <div class="winners-list">        <div class="winner-row" style="border-left: 3px solid #E8002D">
+          <div class="winner-row-header">
+            <span class="team-dot" style="background:#E8002D"></span>
+            <span class="wr-name" title="Armandas P (Kimichi v2)">Armandas P</span>
+            <span class="wr-badge">1 WIN</span>
+          </div>
+          <div class="winner-races"><span class="win-pill" title="241 pts">01 - Australia</span></div>
+        </div>
+</div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="footer">Global F1 Battle 2026 · Data auto-generated from league CSV · Built with Plotly.js</div>
+
+<script>
+// ── Chart data injected from Python ─────────────────────
+const DATA = {"players": ["Armandas P (Kimichi v2)", "William S (V8 Leprechaun)", "Saulius D (SolClover HKF1)", "Alex S (HUL-9000)", "Paulius R (LitWin Racing Team)", "Karolis J (Turbo team with no Norris)", "David M (Meteoric Maxwell)", "Vaidas K (Michael!)", "Ignas J (GAIA44)", "Andrius A (AdoF1Ado)", "Virginija P (La La Landooooo)", "Laura M (Inchidental Ferrari Tears)", "- (Woking 9 to 5...)", "William H (Hamiltoni Scuderia)", "Mindaugas V (MV911 Racing Team)"], "race_labels": ["00 - Start", "01 - Australia"], "cumulative": {"Armandas P (Kimichi v2)": [0, 241], "William S (V8 Leprechaun)": [0, 239], "Saulius D (SolClover HKF1)": [0, 237], "Alex S (HUL-9000)": [0, 234], "Paulius R (LitWin Racing Team)": [0, 228], "Karolis J (Turbo team with no Norris)": [0, 222], "David M (Meteoric Maxwell)": [0, 206], "Vaidas K (Michael!)": [0, 201], "Ignas J (GAIA44)": [0, 188], "Andrius A (AdoF1Ado)": [0, 175], "Virginija P (La La Landooooo)": [0, 171], "Laura M (Inchidental Ferrari Tears)": [0, 167], "- (Woking 9 to 5...)": [0, 160], "William H (Hamiltoni Scuderia)": [0, 155], "Mindaugas V (MV911 Racing Team)": [0, 152]}, "per_race": {"Armandas P (Kimichi v2)": [0, 241], "William S (V8 Leprechaun)": [0, 239], "Saulius D (SolClover HKF1)": [0, 237], "Alex S (HUL-9000)": [0, 234], "Paulius R (LitWin Racing Team)": [0, 228], "Karolis J (Turbo team with no Norris)": [0, 222], "David M (Meteoric Maxwell)": [0, 206], "Vaidas K (Michael!)": [0, 201], "Ignas J (GAIA44)": [0, 188], "Andrius A (AdoF1Ado)": [0, 175], "Virginija P (La La Landooooo)": [0, 171], "Laura M (Inchidental Ferrari Tears)": [0, 167], "- (Woking 9 to 5...)": [0, 160], "William H (Hamiltoni Scuderia)": [0, 155], "Mindaugas V (MV911 Racing Team)": [0, 152]}, "rankings": {"Armandas P (Kimichi v2)": [1, 1], "William S (V8 Leprechaun)": [2, 2], "Saulius D (SolClover HKF1)": [3, 3], "Alex S (HUL-9000)": [4, 4], "Paulius R (LitWin Racing Team)": [5, 5], "Karolis J (Turbo team with no Norris)": [6, 6], "David M (Meteoric Maxwell)": [7, 7], "Vaidas K (Michael!)": [8, 8], "Ignas J (GAIA44)": [9, 9], "Andrius A (AdoF1Ado)": [10, 10], "Virginija P (La La Landooooo)": [11, 11], "Laura M (Inchidental Ferrari Tears)": [12, 12], "- (Woking 9 to 5...)": [13, 13], "William H (Hamiltoni Scuderia)": [14, 14], "Mindaugas V (MV911 Racing Team)": [15, 15]}, "stats": {"Armandas P (Kimichi v2)": {"avg": 241.0, "best": 241, "best_race": "01 - Australia", "total": 241}, "William S (V8 Leprechaun)": {"avg": 239.0, "best": 239, "best_race": "01 - Australia", "total": 239}, "Saulius D (SolClover HKF1)": {"avg": 237.0, "best": 237, "best_race": "01 - Australia", "total": 237}, "Alex S (HUL-9000)": {"avg": 234.0, "best": 234, "best_race": "01 - Australia", "total": 234}, "Paulius R (LitWin Racing Team)": {"avg": 228.0, "best": 228, "best_race": "01 - Australia", "total": 228}, "Karolis J (Turbo team with no Norris)": {"avg": 222.0, "best": 222, "best_race": "01 - Australia", "total": 222}, "David M (Meteoric Maxwell)": {"avg": 206.0, "best": 206, "best_race": "01 - Australia", "total": 206}, "Vaidas K (Michael!)": {"avg": 201.0, "best": 201, "best_race": "01 - Australia", "total": 201}, "Ignas J (GAIA44)": {"avg": 188.0, "best": 188, "best_race": "01 - Australia", "total": 188}, "Andrius A (AdoF1Ado)": {"avg": 175.0, "best": 175, "best_race": "01 - Australia", "total": 175}, "Virginija P (La La Landooooo)": {"avg": 171.0, "best": 171, "best_race": "01 - Australia", "total": 171}, "Laura M (Inchidental Ferrari Tears)": {"avg": 167.0, "best": 167, "best_race": "01 - Australia", "total": 167}, "- (Woking 9 to 5...)": {"avg": 160.0, "best": 160, "best_race": "01 - Australia", "total": 160}, "William H (Hamiltoni Scuderia)": {"avg": 155.0, "best": 155, "best_race": "01 - Australia", "total": 155}, "Mindaugas V (MV911 Racing Team)": {"avg": 152.0, "best": 152, "best_race": "01 - Australia", "total": 152}}};
+
+// ── Per-player colours (keyed by player name) ──────────
+const PCOLORS = {"Armandas P (Kimichi v2)": "#E8002D", "William S (V8 Leprechaun)": "#00D2BE", "Saulius D (SolClover HKF1)": "#FF8000", "Alex S (HUL-9000)": "#0600EF", "Paulius R (LitWin Racing Team)": "#DC0000", "Karolis J (Turbo team with no Norris)": "#1E41FF", "David M (Meteoric Maxwell)": "#B6BABD", "Vaidas K (Michael!)": "#52E252", "Ignas J (GAIA44)": "#FF1E00", "Andrius A (AdoF1Ado)": "#C92D4B", "Virginija P (La La Landooooo)": "#006F62", "Laura M (Inchidental Ferrari Tears)": "#FFF500", "- (Woking 9 to 5...)": "#3671C6", "William H (Hamiltoni Scuderia)": "#FF87BC", "Mindaugas V (MV911 Racing Team)": "#A6C84F"};
+
+// ── Tab switching (lazy-render rank/bar so legend sizes correctly) ──
+const chartInited = { cum: true, rank: false, bar: false };
+function showChart(id) {
+  ['cum','rank','bar'].forEach(k => {
+    document.getElementById('chart-' + k).classList.toggle('chart-hidden', k !== id);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['cum','rank','bar'][i] === id);
+  });
+  if (!chartInited[id]) {
+    chartInited[id] = true;
+    if (id === 'rank') initRankChart();
+    if (id === 'bar')  initBarChart();
+  }
+}
+
+// ── Shared layout defaults ───────────────────────────────
+const BASE_LAYOUT = {
+  paper_bgcolor: '#111827',
+  plot_bgcolor:  '#0d1525',
+  font: { family: "'Courier New', Courier, monospace", color: '#e8eaf0', size: 11 },
+  margin: { l: 60, r: 20, t: 110, b: 150 },
+  legend: {
+    orientation: 'h', x: 0, y: 1.02,
+    xanchor: 'left', yanchor: 'bottom',
+    font: { size: 10, color: '#e8eaf0' },
+    bgcolor: 'rgba(0,0,0,0)',
+    itemclick: 'toggle',
+    itemdoubleclick: 'toggleothers'
+  },
+  xaxis: {
+    gridcolor: '#1a2640', linecolor: '#1e2d45', tickcolor: '#1e2d45',
+    tickfont: { size: 10, color: '#7a8ba0' },
+    tickangle: -45
+  },
+  yaxis: {
+    gridcolor: '#1a2640', linecolor: '#1e2d45', tickcolor: '#1e2d45',
+    tickfont: { size: 10, color: '#7a8ba0' },
+    zeroline: false
+  },
+  hovermode: 'x unified',
+  hoverlabel: {
+    bgcolor: '#0d1525', bordercolor: '#e8002d',
+    font: { family: "'Courier New', monospace", size: 11, color: '#e8eaf0' }
+  }
+};
+
+// ── Build Cumulative Points chart (rendered immediately, tab is visible) ──
+(function() {
+  const traces = DATA.players.map((p) => ({
+    name: p,
+    x: DATA.race_labels,
+    y: DATA.cumulative[p],
+    mode: 'lines+markers',
+    line: { color: PCOLORS[p], width: 2 },
+    marker: { color: PCOLORS[p], size: 5 },
+    hovertemplate: '%{y} pts<extra>' + p + '</extra>'
+  }));
+
+  const layout = Object.assign({}, BASE_LAYOUT, {
+    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Cumulative Points', font: { size: 11 } } }),
+    height: 680
+  });
+  Plotly.newPlot('chart-cum', traces, layout, { responsive: true, displaylogo: false });
+})();
+
+// ── Position Battle (bump) – lazy, rendered on first tab click ──────
+function initRankChart() {
+  const traces = DATA.players.map((p) => ({
+    name: p,
+    x: DATA.race_labels,
+    y: DATA.rankings[p],
+    mode: 'lines+markers',
+    line: { color: PCOLORS[p], width: 2 },
+    marker: { color: PCOLORS[p], size: 5 },
+    hovertemplate: 'P%{y}<extra>' + p + '</extra>'
+  }));
+  const layout = Object.assign({}, BASE_LAYOUT, {
+    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, {
+      title: { text: 'Position', font: { size: 11 } },
+      autorange: 'reversed',
+      tickmode: 'linear', tick0: 1, dtick: 1
+    }),
+    height: 680
+  });
+  Plotly.newPlot('chart-rank', traces, layout, { responsive: true, displaylogo: false });
+}
+
+// ── Per-Race Points bar – lazy, rendered on first tab click ──────────
+function initBarChart() {
+  const traces = DATA.players.map((p) => ({
+    name: p,
+    x: DATA.race_labels,
+    y: DATA.per_race[p],
+    type: 'bar',
+    marker: { color: PCOLORS[p], opacity: 0.85 },
+    hovertemplate: '%{y} pts<extra>' + p + '</extra>'
+  }));
+  const layout = Object.assign({}, BASE_LAYOUT, {
+    barmode: 'group',
+    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Points Scored', font: { size: 11 } } }),
+    height: 680
+  });
+  Plotly.newPlot('chart-bar', traces, layout, { responsive: true, displaylogo: false });
+}
+
+
+</script>
+</body>
+</html>
