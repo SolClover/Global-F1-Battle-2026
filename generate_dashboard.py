@@ -690,9 +690,31 @@ function showChart(id) {
 
 // ── Responsive chart height ─────────────────────────────
 function chartHeight() {
-  if (window.innerWidth <= 600) return 420;
+  if (window.innerWidth <= 600) return 580;
   if (window.innerWidth <= 900) return 520;
   return 680;
+}
+
+// ── Mobile layout overrides: legend below chart, 2-col, smaller font ──
+function mobileLayoutOverrides() {
+  if (window.innerWidth > 600) return {};
+  return {
+    margin: { l: 50, r: 10, t: 40, b: 210 },
+    legend: {
+      orientation: 'h',
+      x: 0, y: -0.3,
+      xanchor: 'left', yanchor: 'top',
+      font: { size: 8, color: '#e8eaf0' },
+      bgcolor: 'rgba(0,0,0,0)',
+      itemclick: 'toggle',
+      itemdoubleclick: 'toggleothers',
+      entrywidth: 0.5,
+      entrywidthmode: 'fraction'
+    },
+    xaxis: Object.assign({}, BASE_LAYOUT.xaxis, {
+      tickfont: { size: 8, color: '#7a8ba0' }
+    })
+  };
 }
 
 // ── Shared layout defaults ───────────────────────────────
@@ -738,8 +760,9 @@ const BASE_LAYOUT = {
     hovertemplate: '%{y} pts<extra>' + p + '</extra>'
   }));
 
-  const layout = Object.assign({}, BASE_LAYOUT, {
+  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
     yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Cumulative Points', font: { size: 11 } } }),
+    width: document.getElementById('chart-cum').offsetWidth || undefined,
     height: chartHeight()
   });
   Plotly.newPlot('chart-cum', traces, layout, { responsive: true, displaylogo: false });
@@ -756,12 +779,13 @@ function initRankChart() {
     marker: { color: PCOLORS[p], size: 5 },
     hovertemplate: 'P%{y}<extra>' + p + '</extra>'
   }));
-  const layout = Object.assign({}, BASE_LAYOUT, {
+  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
     yaxis: Object.assign({}, BASE_LAYOUT.yaxis, {
       title: { text: 'Position', font: { size: 11 } },
       autorange: 'reversed',
       tickmode: 'linear', tick0: 1, dtick: 1
     }),
+    width: document.getElementById('chart-rank').offsetWidth || undefined,
     height: chartHeight()
   });
   Plotly.newPlot('chart-rank', traces, layout, { responsive: true, displaylogo: false });
@@ -777,9 +801,10 @@ function initBarChart() {
     marker: { color: PCOLORS[p], opacity: 0.85 },
     hovertemplate: '%{y} pts<extra>' + p + '</extra>'
   }));
-  const layout = Object.assign({}, BASE_LAYOUT, {
+  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
     barmode: 'group',
     yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Points Scored', font: { size: 11 } } }),
+    width: document.getElementById('chart-bar').offsetWidth || undefined,
     height: chartHeight()
   });
   Plotly.newPlot('chart-bar', traces, layout, { responsive: true, displaylogo: false });
