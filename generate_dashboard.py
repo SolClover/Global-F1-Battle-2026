@@ -224,7 +224,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Global F1 Battle 2026</title>
-<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg:        #0a0e1a;
@@ -240,7 +243,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --gold:      #ffd700;
     --silver:    #c0c0c0;
     --bronze:    #cd7f32;
-    --mono:      'Courier New', Courier, monospace;
+    --mono:      'JetBrains Mono', 'Courier New', monospace;
     --sans:      'Inter', 'Segoe UI', Arial, sans-serif;
   }
 
@@ -386,6 +389,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
   .chart-wrap { width: 100%; }
   .chart-hidden { display: none; }
+  .chart-canvas-wrap {
+    position: relative;
+    height: 520px;
+  }
+  .heatmap-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  @media (max-width: 900px) { .chart-canvas-wrap { height: 460px; } }
+  @media (max-width: 600px) { .chart-canvas-wrap { height: 520px; } }
 
   /* ── Leaderboard ─────────────────────────────────────── */
   .lb-table {
@@ -401,15 +414,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: 8px 10px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
+  .lb-table th.wrap-hdr { white-space: normal; word-break: break-word; line-height: 1.2; }
   .lb-table td {
     padding: 7px 10px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+    text-align: center;
   }
+  .lb-table td.player-td { text-align: left; }
   .lb-table tr:last-child td { border-bottom: none; }
   .lb-table tr:hover td { background: rgba(255,255,255,0.03); }
 
@@ -439,6 +455,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     display: flex;
     align-items: center;
   }
+  .player-name-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+  .player-person {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .player-team {
+    font-size: 0.75em;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
 
   .change-up   { color: var(--green); font-weight: 700; }
   .change-down { color: var(--red);   font-weight: 700; }
@@ -455,6 +485,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .avg-bar-wrap {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
   }
   .avg-bar {
@@ -563,25 +594,31 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     .chart-tabs { flex-wrap: wrap; gap: 6px; }
     .tab-btn {
-      flex: 1 1 auto;
+      flex: 1 1 calc(50% - 3px);
+      max-width: calc(50% - 3px);
       text-align: center;
       padding: 7px 6px;
       font-size: 0.62rem;
       letter-spacing: 0.5px;
     }
 
-    /* Leaderboard: hide PREV TOTAL, AVG/RACE, BEST RACE columns */
-    .lb-table th:nth-child(3),
-    .lb-table td:nth-child(3),
+    /* Leaderboard: hide AVG/RACE(8), BEST RACE(9) only; PREV TOTAL visible */
     .lb-table th:nth-child(8),
     .lb-table td:nth-child(8),
     .lb-table th:nth-child(9),
     .lb-table td:nth-child(9) { display: none; }
 
-    .lb-table { font-size: 0.74rem; }
+    /* Wrap only multi-word column headers to save horizontal space */
+    .lb-table th.wrap-hdr { white-space: normal; word-break: break-word; line-height: 1.2; letter-spacing: 0.5px; }
+
+    /* Allow player name cell (col 3) to wrap for two-line layout */
+    .lb-table td:nth-child(3) { white-space: normal; max-width: 120px; }
+    .player-team { white-space: normal; word-break: break-word; }
+
+    .lb-table { font-size: 0.62rem; }
     .lb-table th,
-    .lb-table td { padding: 6px 6px; }
-    .pos-badge { width: 22px; height: 22px; font-size: 0.75rem; }
+    .lb-table td { padding: 5px 4px; }
+    .pos-badge { width: 20px; height: 20px; font-size: 0.68rem; }
 
     .winner-row-header { min-width: 120px; }
     .wr-name { font-size: 0.75rem; }
@@ -594,8 +631,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .header-title h1 { font-size: 0.95rem; }
     .stat-card { flex: 1 1 100%; }
     /* Also hide GAP column to give more room */
-    .lb-table th:nth-child(6),
-    .lb-table td:nth-child(6) { display: none; }
+    .lb-table th:nth-child(7),
+    .lb-table td:nth-child(7) { display: none; }
   }
 </style>
 </head>
@@ -623,11 +660,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="chart-tabs">
       <button class="tab-btn active" onclick="showChart('cum')">Cumulative Points</button>
       <button class="tab-btn" onclick="showChart('rank')">Position Battle</button>
-      <button class="tab-btn" onclick="showChart('bar')">Points Per Race</button>
+      <button class="tab-btn" onclick="showChart('heat')">Race Heatmap</button>
+      <button class="tab-btn" onclick="showChart('dot')">Score Spread</button>
     </div>
-    <div id="chart-cum"  class="chart-wrap"></div>
-    <div id="chart-rank" class="chart-wrap chart-hidden"></div>
-    <div id="chart-bar"  class="chart-wrap chart-hidden"></div>
+    <div id="chart-cum"  class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="canvas-cum"></canvas></div></div>
+    <div id="chart-rank" class="chart-wrap chart-hidden"><div class="chart-canvas-wrap"><canvas id="canvas-rank"></canvas></div></div>
+    <div id="chart-heat" class="chart-wrap chart-hidden"><div class="heatmap-wrap"><canvas id="canvas-heat"></canvas></div></div>
+    <div id="chart-dot"  class="chart-wrap chart-hidden"><div class="chart-canvas-wrap"><canvas id="canvas-dot"></canvas></div></div>
   </div>
 
   <!-- ── Leaderboard ───────────────────────────────────── -->
@@ -638,14 +677,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <thead>
           <tr>
             <th>POS</th>
-            <th>PLAYER</th>
-            <th style="text-align:right">PREV TOTAL</th>
-            <th style="text-align:right">RACE PTS</th>
-            <th style="text-align:right">NEW TOTAL</th>
-            <th style="text-align:right">GAP</th>
-            <th style="text-align:center">CHG</th>
-            <th>AVG / RACE</th>
-            <th>BEST RACE</th>
+            <th>CHG</th>
+            <th style="text-align:left">PLAYER</th>
+            <th class="wrap-hdr">PREV TOTAL</th>
+            <th class="wrap-hdr">RACE PTS</th>
+            <th class="wrap-hdr">NEW TOTAL</th>
+            <th>GAP</th>
+            <th class="wrap-hdr">AVG / RACE</th>
+            <th class="wrap-hdr">BEST RACE</th>
           </tr>
         </thead>
         <tbody>
@@ -663,7 +702,7 @@ __LEADERBOARD_ROWS__
 
 </div><!-- /main -->
 
-<div class="footer">Global F1 Battle __YEAR__ · Data auto-generated from league CSV · Built with Plotly.js</div>
+<div class="footer">Global F1 Battle __YEAR__ · Data from F1 Fantasy League Game · Built by Saul Dobilas</div>
 
 <script>
 // ── Chart data injected from Python ─────────────────────
@@ -672,144 +711,307 @@ const DATA = __JSON_DATA__;
 // ── Per-player colours (keyed by player name) ──────────
 const PCOLORS = __PLAYER_COLORS__;
 
-// ── Tab switching (lazy-render rank/bar so legend sizes correctly) ──
-const chartInited = { cum: true, rank: false, bar: false };
+// ── Chart registry & lazy-init state ────────────────────
+const charts = {};
+const chartInited = { cum: false, rank: false, heat: false, dot: false };
+
+// ── Tab switching ────────────────────────────────────────
 function showChart(id) {
-  ['cum','rank','bar'].forEach(k => {
+  ['cum','rank','heat','dot'].forEach(k => {
     document.getElementById('chart-' + k).classList.toggle('chart-hidden', k !== id);
   });
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['cum','rank','bar'][i] === id);
+    btn.classList.toggle('active', ['cum','rank','heat','dot'][i] === id);
   });
   if (!chartInited[id]) {
     chartInited[id] = true;
-    if (id === 'rank') initRankChart();
-    if (id === 'bar')  initBarChart();
+    renderChart(id);
+  } else if (id !== 'heat' && charts[id]) {
+    setTimeout(() => charts[id].resize(), 10);
   }
 }
 
-// ── Responsive chart height ─────────────────────────────
-function chartHeight() {
-  if (window.innerWidth <= 600) return 580;
-  if (window.innerWidth <= 900) return 520;
-  return 680;
-}
+// ── Resize on window resize ─────────────────────────────
+window.addEventListener('resize', () => {
+  ['cum','rank','dot'].forEach(id => { if (charts[id]) charts[id].resize(); });
+  if (chartInited.heat) drawHeatmap();
+});
 
-// ── Mobile layout overrides: legend below chart, 2-col, smaller font ──
-function mobileLayoutOverrides() {
-  if (window.innerWidth > 600) return {};
+// ── Shared Chart.js defaults ─────────────────────────────
+Chart.defaults.color = '#7a8ba0';
+Chart.defaults.font.family = "'JetBrains Mono', 'Courier New', monospace";
+Chart.defaults.font.size = 10;
+
+function sharedOptions(yTitle, reverseY) {
   return {
-    margin: { l: 50, r: 10, t: 40, b: 210 },
-    legend: {
-      orientation: 'h',
-      x: 0, y: -0.3,
-      xanchor: 'left', yanchor: 'top',
-      font: { size: 8, color: '#e8eaf0' },
-      bgcolor: 'rgba(0,0,0,0)',
-      itemclick: 'toggle',
-      itemdoubleclick: 'toggleothers',
-      entrywidth: 0.5,
-      entrywidthmode: 'fraction'
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 350 },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#e8eaf0',
+          boxWidth: 10, boxHeight: 10,
+          padding: 8,
+          font: { size: 9 },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          generateLabels: chart => {
+            const orig = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+            return orig.map(item => ({
+              ...item,
+              text: item.text.includes(' (') ? item.text.split(' (')[0] : item.text
+            }));
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#0d1525',
+        borderColor: '#e8002d',
+        borderWidth: 1,
+        titleColor: '#7a8ba0',
+        bodyColor: '#e8eaf0',
+        padding: 10,
+        bodyFont: { size: 10 }
+      }
     },
-    xaxis: Object.assign({}, BASE_LAYOUT.xaxis, {
-      tickfont: { size: 8, color: '#7a8ba0' }
-    })
+    scales: {
+      x: {
+        ticks: { color: '#7a8ba0', maxRotation: 45 },
+        grid: { color: '#1a2640' },
+        border: { color: '#1e2d45' }
+      },
+      y: {
+        reverse: !!reverseY,
+        ticks: { color: '#7a8ba0' },
+        grid: { color: '#1a2640' },
+        border: { color: '#1e2d45' },
+        title: { display: true, text: yTitle, color: '#7a8ba0', font: { size: 10 } }
+      }
+    }
   };
 }
 
-// ── Shared layout defaults ───────────────────────────────
-const BASE_LAYOUT = {
-  paper_bgcolor: '#111827',
-  plot_bgcolor:  '#0d1525',
-  font: { family: "'Courier New', Courier, monospace", color: '#e8eaf0', size: 11 },
-  margin: { l: 60, r: 20, t: 110, b: 150 },
-  legend: {
-    orientation: 'h', x: 0, y: 1.02,
-    xanchor: 'left', yanchor: 'bottom',
-    font: { size: 10, color: '#e8eaf0' },
-    bgcolor: 'rgba(0,0,0,0)',
-    itemclick: 'toggle',
-    itemdoubleclick: 'toggleothers'
-  },
-  xaxis: {
-    gridcolor: '#1a2640', linecolor: '#1e2d45', tickcolor: '#1e2d45',
-    tickfont: { size: 10, color: '#7a8ba0' },
-    tickangle: -45
-  },
-  yaxis: {
-    gridcolor: '#1a2640', linecolor: '#1e2d45', tickcolor: '#1e2d45',
-    tickfont: { size: 10, color: '#7a8ba0' },
-    zeroline: false
-  },
-  hovermode: 'x unified',
-  hoverlabel: {
-    bgcolor: '#0d1525', bordercolor: '#e8002d',
-    font: { family: "'Courier New', monospace", size: 11, color: '#e8eaf0' }
+function lineDatasets(dataKey) {
+  return DATA.players.map(p => ({
+    label: p,
+    data: DATA[dataKey][p],
+    borderColor: PCOLORS[p],
+    backgroundColor: PCOLORS[p],
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    borderWidth: 2,
+    tension: 0.1,
+    fill: false
+  }));
+}
+
+// ── Option C: Race Heatmap (pure canvas, no Chart.js) ────────
+function drawHeatmap() {
+  const canvas = document.getElementById('canvas-heat');
+  if (!canvas) return;
+
+  // Skip the '00 - Start' column
+  const raceIdxs = DATA.race_labels.reduce((a, l, i) => { if (!l.startsWith('00')) a.push(i); return a; }, []);
+  const raceLabels = raceIdxs.map(i => DATA.race_labels[i]);
+  const players = DATA.players;
+
+  const mob = window.innerWidth <= 600;
+  const CELL_W  = mob ? 54  : 70;
+  const CELL_H  = mob ? 26  : 32;
+  const LABEL_W = mob ? 78  : 108;
+  const HDR_H   = 46;
+  const W = LABEL_W + raceLabels.length * CELL_W;
+  const H = HDR_H   + players.length   * CELL_H;
+
+  canvas.width  = W;  canvas.height = H;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.parentElement.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d1525';
+  ctx.fillRect(0, 0, W, H);
+
+  // Per-race min/max for colour normalisation
+  const raceStats = raceIdxs.map(ri => {
+    const s = players.map(p => DATA.per_race[p][ri]);
+    return { min: Math.min(...s), max: Math.max(...s) };
+  });
+
+  function cellColor(score, min, max) {
+    const t = max > min ? (score - min) / (max - min) : 0.5;
+    // Navy → bright teal
+    return `rgb(${Math.round((1-t)*18+t*0)},${Math.round((1-t)*38+t*210)},${Math.round((1-t)*68+t*190)})`;
   }
-};
 
-// ── Build Cumulative Points chart (rendered immediately, tab is visible) ──
-(function() {
-  const traces = DATA.players.map((p) => ({
-    name: p,
-    x: DATA.race_labels,
-    y: DATA.cumulative[p],
-    mode: 'lines+markers',
-    line: { color: PCOLORS[p], width: 2 },
-    marker: { color: PCOLORS[p], size: 5 },
-    hovertemplate: '%{y} pts<extra>' + p + '</extra>'
-  }));
-
-  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
-    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Cumulative Points', font: { size: 11 } } }),
-    width: document.getElementById('chart-cum').offsetWidth || undefined,
-    height: chartHeight()
+  // Race column headers
+  const hdrFont = (mob ? '7.5' : '9') + "px 'JetBrains Mono',monospace";
+  ctx.font = hdrFont;  ctx.fillStyle = '#7a8ba0';  ctx.textAlign = 'center';
+  raceLabels.forEach((lbl, ci) => {
+    const x = LABEL_W + ci * CELL_W + CELL_W / 2;
+    const p = lbl.split(' - ');
+    if (p.length === 2) { ctx.fillText(p[0], x, 14); ctx.fillText(p[1], x, 30); }
+    else { ctx.fillText(lbl, x, HDR_H / 2 + 4); }
   });
-  Plotly.newPlot('chart-cum', traces, layout, { responsive: true, displaylogo: false });
-})();
 
-// ── Position Battle (bump) – lazy, rendered on first tab click ──────
-function initRankChart() {
-  const traces = DATA.players.map((p) => ({
-    name: p,
-    x: DATA.race_labels,
-    y: DATA.rankings[p],
-    mode: 'lines+markers',
-    line: { color: PCOLORS[p], width: 2 },
-    marker: { color: PCOLORS[p], size: 5 },
-    hovertemplate: 'P%{y}<extra>' + p + '</extra>'
-  }));
-  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
-    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, {
-      title: { text: 'Position', font: { size: 11 } },
-      autorange: 'reversed',
-      tickmode: 'linear', tick0: 1, dtick: 1
-    }),
-    width: document.getElementById('chart-rank').offsetWidth || undefined,
-    height: chartHeight()
+  // Player rows
+  const nameFont = (mob ? '8.5' : '10') + "px 'JetBrains Mono',monospace";
+  const valFont  = 'bold ' + (mob ? '9' : '11') + "px 'JetBrains Mono',monospace";
+  players.forEach((p, ri) => {
+    const y   = HDR_H + ri * CELL_H;
+    const sName = p.includes(' (') ? p.split(' (')[0] : p;
+
+    // Player label
+    ctx.font = nameFont;  ctx.fillStyle = '#e8eaf0';  ctx.textAlign = 'right';
+    ctx.fillText(sName, LABEL_W - 10, y + CELL_H / 2 + 3);
+    // Player colour dot
+    ctx.beginPath();
+    ctx.arc(LABEL_W - 4, y + CELL_H / 2, 3, 0, Math.PI * 2);
+    ctx.fillStyle = PCOLORS[p] || '#888';  ctx.fill();
+
+    // Score cells
+    raceIdxs.forEach((origIdx, ci) => {
+      const score = DATA.per_race[p][origIdx];
+      const { min, max } = raceStats[ci];
+      const cx = LABEL_W + ci * CELL_W;
+      ctx.fillStyle = cellColor(score, min, max);
+      ctx.fillRect(cx + 1, y + 1, CELL_W - 2, CELL_H - 2);
+      const t = max > min ? (score - min) / (max - min) : 0.5;
+      ctx.font = valFont;
+      ctx.fillStyle = t > 0.45 ? '#001015' : '#c8d0e0';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(score), cx + CELL_W / 2, y + CELL_H / 2 + 4);
+    });
   });
-  Plotly.newPlot('chart-rank', traces, layout, { responsive: true, displaylogo: false });
+
+  // Grid lines
+  ctx.strokeStyle = '#1e2d45';  ctx.lineWidth = 1;
+  for (let ci = 0; ci <= raceLabels.length; ci++) {
+    const x = LABEL_W + ci * CELL_W + 0.5;
+    ctx.beginPath(); ctx.moveTo(x, HDR_H); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let ri = 0; ri <= players.length; ri++) {
+    const y = HDR_H + ri * CELL_H + 0.5;
+    ctx.beginPath(); ctx.moveTo(LABEL_W, y); ctx.lineTo(W, y); ctx.stroke();
+  }
 }
 
-// ── Per-Race Points bar – lazy, rendered on first tab click ──────────
-function initBarChart() {
-  const traces = DATA.players.map((p) => ({
-    name: p,
-    x: DATA.race_labels,
-    y: DATA.per_race[p],
+// ── Option D: Score Spread — range bars + player dots ───────
+function renderDotChart(ctx) {
+  const raceIdxs = DATA.race_labels.reduce((a, l, i) => { if (!l.startsWith('00')) a.push(i); return a; }, []);
+  const raceLabels = raceIdxs.map(i => DATA.race_labels[i]);
+
+  const rangeData = raceIdxs.map(ri => {
+    const scores = DATA.players.map(p => DATA.per_race[p][ri]);
+    return [Math.min(...scores), Math.max(...scores)];
+  });
+
+  const datasets = [
+    {
+      type: 'bar',
+      label: 'Score Range',
+      data: rangeData,
+      backgroundColor: 'rgba(255,255,255,0.07)',
+      borderColor:     'rgba(255,255,255,0.16)',
+      borderWidth: 1,
+      barPercentage: 0.55,
+      categoryPercentage: 0.95,
+      order: 10
+    },
+    ...DATA.players.map(p => ({
+      type: 'line',
+      label: p,
+      data: raceIdxs.map(ri => DATA.per_race[p][ri]),
+      borderColor: PCOLORS[p],
+      backgroundColor: PCOLORS[p],
+      pointRadius: 5,
+      pointHoverRadius: 9,
+      showLine: false,
+      order: 1
+    }))
+  ];
+
+  const opts = sharedOptions('Points Scored Per Race', false);
+  opts.interaction = { mode: 'nearest', intersect: false, axis: 'xy' };
+  opts.plugins.tooltip = Object.assign({}, opts.plugins.tooltip, {
+    callbacks: {
+      title: items => raceLabels[items[0]?.dataIndex] || '',
+      label: c => {
+        if (c.dataset.label === 'Score Range')
+          return ` Spread: ${c.raw[0]}–${c.raw[1]} pts`;
+        const n = c.dataset.label.includes(' (') ? c.dataset.label.split(' (')[0] : c.dataset.label;
+        return ` ${n}: ${c.parsed.y} pts`;
+      }
+    }
+  });
+
+  charts.dot = new Chart(ctx, {
     type: 'bar',
-    marker: { color: PCOLORS[p], opacity: 0.85 },
-    hovertemplate: '%{y} pts<extra>' + p + '</extra>'
-  }));
-  const layout = Object.assign({}, BASE_LAYOUT, mobileLayoutOverrides(), {
-    barmode: 'group',
-    yaxis: Object.assign({}, BASE_LAYOUT.yaxis, { title: { text: 'Points Scored', font: { size: 11 } } }),
-    width: document.getElementById('chart-bar').offsetWidth || undefined,
-    height: chartHeight()
+    data: { labels: raceLabels, datasets },
+    options: opts
   });
-  Plotly.newPlot('chart-bar', traces, layout, { responsive: true, displaylogo: false });
 }
 
+// ── Render chart by id ─────────────────────────────────
+function renderChart(id) {
+  if (id === 'heat') { drawHeatmap(); return; }
+  const canvas = document.getElementById('canvas-' + id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  if (id === 'cum') {
+    const opts = sharedOptions('Cumulative Points', false);
+    opts.plugins.tooltip.callbacks = {
+      label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' pts'
+    };
+    charts.cum = new Chart(ctx, {
+      type: 'line',
+      data: { labels: DATA.race_labels, datasets: lineDatasets('cumulative') },
+      options: opts
+    });
+
+  } else if (id === 'rank') {
+    const rankIdxs = DATA.race_labels.reduce((a, l, i) => { if (!l.startsWith('00')) a.push(i); return a; }, []);
+    const rankLabels = rankIdxs.map(i => DATA.race_labels[i]);
+    const opts = sharedOptions('Position  (1 = Leader)', true);
+    opts.scales.y.ticks = Object.assign({}, opts.scales.y.ticks, {
+      stepSize: 1,
+      callback: v => Number.isInteger(v) ? 'P' + v : ''
+    });
+    opts.plugins.tooltip.callbacks = {
+      label: c => ' ' + c.dataset.label + ': P' + c.parsed.y
+    };
+    charts.rank = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rankLabels,
+        datasets: DATA.players.map(p => ({
+          label: p,
+          data: rankIdxs.map(i => DATA.rankings[p][i]),
+          borderColor: PCOLORS[p],
+          backgroundColor: PCOLORS[p],
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          borderWidth: 2,
+          tension: 0.1,
+          fill: false
+        }))
+      },
+      options: opts
+    });
+
+  } else if (id === 'dot') {
+    renderDotChart(ctx);
+  }
+}
+
+// ── Init 'cum' chart immediately on load ─────────────────
+chartInited.cum = true;
+renderChart('cum');
 
 </script>
 </body>
@@ -953,14 +1155,23 @@ def build_leaderboard_rows(board, players, races, cumulative, player_color_map):
         else:
             best_str = "—"
 
+        # Split player name into person part and team part
+        if " (" in p and p.endswith(")"):
+            person_part = p[:p.index(" (")]
+            team_part = p[p.index(" (")+2:-1]
+        else:
+            person_part = p
+            team_part = ""
+        team_line = f'<span class="player-team">{team_part}</span>' if team_part else ""
+
         rows_html += f"""          <tr>
             <td>{badge}</td>
-            <td><div class="player-name"><span class="team-dot" style="background:{color}"></span>{p}</div></td>
-            <td style="text-align:right" class="pts-col">{entry['prev_total']:,}</td>
-            <td style="text-align:right" class="{rpts_class}">{rpts_str}</td>
-            <td style="text-align:right" class="pts-col"><b>{entry['new_total']:,}</b></td>
-            <td style="text-align:right">{gap_html}</td>
-            <td style="text-align:center">{chg_html}</td>
+            <td>{chg_html}</td>
+            <td class="player-td"><div class="player-name"><span class="team-dot" style="background:{color}"></span><div class="player-name-text"><span class="player-person">{person_part}</span>{team_line}</div></div></td>
+            <td class="pts-col">{entry['prev_total']:,}</td>
+            <td class="{rpts_class}">{rpts_str}</td>
+            <td class="pts-col"><b>{entry['new_total']:,}</b></td>
+            <td>{gap_html}</td>
             <td>{avg_html}</td>
             <td style="font-size:0.72rem; color:#7a8ba0">{best_str}</td>
           </tr>
