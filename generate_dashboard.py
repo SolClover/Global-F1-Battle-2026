@@ -965,9 +965,18 @@ function renderChart(id) {
 
   if (id === 'cum') {
     const opts = sharedOptions('Cumulative Points', false);
+    const mob = window.innerWidth <= 600;
     opts.plugins.tooltip.callbacks = {
-      label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' pts'
+      title: items => items[0]?.label || '',
+      label: c => {
+        const n = c.dataset.label.includes(' (') ? c.dataset.label.split(' (')[0] : c.dataset.label;
+        return ' ' + n + ': ' + c.parsed.y + ' pts';
+      }
     };
+    if (mob) {
+      // On mobile: show tooltip only for the nearest tapped point (single player)
+      opts.interaction = { mode: 'nearest', intersect: true, axis: 'xy' };
+    }
     charts.cum = new Chart(ctx, {
       type: 'line',
       data: { labels: DATA.race_labels, datasets: lineDatasets('cumulative') },
@@ -983,8 +992,15 @@ function renderChart(id) {
       callback: v => Number.isInteger(v) ? 'P' + v : ''
     });
     opts.plugins.tooltip.callbacks = {
-      label: c => ' ' + c.dataset.label + ': P' + c.parsed.y
+      title: items => rankLabels[items[0]?.dataIndex] || '',
+      label: c => {
+        const n = c.dataset.label.includes(' (') ? c.dataset.label.split(' (')[0] : c.dataset.label;
+        return ' ' + n + ': P' + c.parsed.y;
+      }
     };
+    if (window.innerWidth <= 600) {
+      opts.interaction = { mode: 'nearest', intersect: true, axis: 'xy' };
+    }
     charts.rank = new Chart(ctx, {
       type: 'line',
       data: {
