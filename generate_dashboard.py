@@ -1089,7 +1089,7 @@ def build_stat_cards(players, races, cumulative, board, leaderboard_label):
 
     # Most consistent (highest avg)
     from statistics import mean
-    completed = [r for r in races if r["tag"] in ("N", "P", "L") and r["label"].strip().upper() != "00 - START"]
+    completed = [r for r in races if r["tag"] in ("O", "P", "L") and r["label"].strip().upper() != "00 - START"]
     if completed:
         avg_scores = {p: mean([r["scores"][p] for r in completed]) for p in players}
         best_avg_p = max(avg_scores, key=lambda p: avg_scores[p])
@@ -1116,7 +1116,7 @@ def build_stat_cards(players, races, cumulative, board, leaderboard_label):
 
 def build_leaderboard_rows(board, players, races, cumulative, player_color_map):
     from statistics import mean
-    completed = [r for r in races if r["tag"] in ("N", "P", "L") and r["label"].strip().upper() != "00 - START"]
+    completed = [r for r in races if r["tag"] in ("O", "P", "L") and r["label"].strip().upper() != "00 - START"]
     max_avg = 1
     if completed:
         all_avgs = [mean([r["scores"][p] for r in completed]) for p in players]
@@ -1268,7 +1268,7 @@ def generate(csv_path: str, out_path: str):
 
     # --- Determine display info ---
     last_race_label = last_race["label"] if last_race else "Season Total"
-    completed_count = sum(1 for r in races if r["tag"] in ("N", "P", "L")
+    completed_count = sum(1 for r in races if r["tag"] in ("O", "P", "L")
                           and r["label"].strip().upper() != "00 - START")
     subtitle = f"After {last_race_label}" if last_race else "Season in progress"
     badge = f"Race {completed_count}"
