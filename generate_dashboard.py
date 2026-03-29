@@ -177,7 +177,7 @@ def race_winners(players, races):
     """Returns list of {label, winner, pts} for each completed race."""
     winners = []
     for r in races:
-        if r["tag"] not in ("N", "P", "L"):
+        if r["tag"] not in ("O", "P", "L"):
             continue
         if r["label"].strip().upper() == "00 - START":
             continue
@@ -482,10 +482,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .race-pts-neg { color: var(--red); }
 
   /* avg bar */
+  .lb-table td:nth-child(8) { text-align: left; }
   .avg-bar-wrap {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
   }
   .avg-bar {

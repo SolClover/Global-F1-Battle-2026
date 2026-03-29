@@ -262,10 +262,11 @@
   .race-pts-neg { color: var(--red); }
 
   /* avg bar */
+  .lb-table td:nth-child(8) { text-align: left; }
   .avg-bar-wrap {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
   }
   .avg-bar {
@@ -726,7 +727,15 @@
   <!-- ── Winners grid ─────────────────────────────────── -->
   <div class="chart-panel">
     <div class="section-title">Individual Race Winners</div>
-    <div class="winners-list">        <div class="winner-row" style="border-left: 3px solid #52E252">
+    <div class="winners-list">        <div class="winner-row" style="border-left: 3px solid #E8002D">
+          <div class="winner-row-header">
+            <span class="team-dot" style="background:#E8002D"></span>
+            <span class="wr-name" title="Armandas P (Kimichi v2)">Armandas P</span>
+            <span class="wr-badge">1 WIN</span>
+          </div>
+          <div class="winner-races"><span class="win-pill" title="241 pts">01 - Australia</span></div>
+        </div>
+        <div class="winner-row" style="border-left: 3px solid #52E252">
           <div class="winner-row-header">
             <span class="team-dot" style="background:#52E252"></span>
             <span class="wr-name" title="Vaidas K (Michael!)">Vaidas K</span>
