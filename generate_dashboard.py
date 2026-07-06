@@ -1087,17 +1087,26 @@ def build_stat_cards(players, races, cumulative, board, leaderboard_label):
     else:
         top_card = ""
 
-    # Most consistent (highest avg)
-    from statistics import mean
     completed = [r for r in races if r["tag"] in ("O", "P", "L") and r["label"].strip().upper() != "00 - START"]
     if completed:
-        avg_scores = {p: mean([r["scores"][p] for r in completed]) for p in players}
-        best_avg_p = max(avg_scores, key=lambda p: avg_scores[p])
+        # Count race wins per player; ties within a race count as wins for all tied players.
+        wins = {p: 0 for p in players}
+        for r in completed:
+            best_score = max(r["scores"][p] for p in players)
+            for p in players:
+                if r["scores"][p] == best_score:
+                    wins[p] += 1
+
+        top_win_count = max(wins.values())
+        top_winners = [p for p in players if wins[p] == top_win_count]
+        winners_display = ", ".join(short_name(p) for p in top_winners)
+        plural = "s" if top_win_count != 1 else ""
+
         consist_card = f"""
     <div class="stat-card accent2">
-      <div class="label">🎯 Most Consistent</div>
-      <div class="value">{short_name(best_avg_p)}</div>
-      <div class="sub">Avg {avg_scores[best_avg_p]:.0f} pts/race · {len(completed)} races</div>
+      <div class="label">🥇 Most Race Wins</div>
+      <div class="value">{winners_display}</div>
+      <div class="sub">{top_win_count} win{plural} · {len(completed)} races</div>
     </div>"""
     else:
         consist_card = ""
